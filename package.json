@@ -1,0 +1,32 @@
+{
+  "dependencies": {
+    "grunt-available-tasks": "^0.6.3",
+    "grunt-contrib-concat": "^1.0.1",
+    "grunt-contrib-cssmin": "^1.0.2",
+    "grunt-contrib-uglify": "1.0.2",
+    "grunt-contrib-watch": "^1.0.0",
+    "grunt-css-url-replace": "^0.2.7",
+    "grunt-exec": "^1.0.1",
+    "grunt-jsvalidate": "^0.2.2",
+    "grunt-phplint": "^0.0.8",
+    "grunt-remove-logging": "^0.2.0",
+    "lodash": "^4.16.6"
+  },
+  "name": "symfony-grunt",
+  "version": "1.0.0",
+  "main": "GruntFile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/michaeldegroot/symfony-grunt.git"
+  },
+  "author": "Michael de Groot <specamps@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/michaeldegroot/symfony-grunt/issues"
+  },
+  "homepage": "https://github.com/michaeldegroot/symfony-grunt#readme",
+  "description": ""
+}

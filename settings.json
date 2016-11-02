@@ -1,0 +1,24 @@
+{
+	"uglify": {
+        "compress": {
+            "drop_console": true,
+            "pure_funcs":   ["console.log"],
+            "dead_code":    true,
+            "unused":       true
+        }
+    },
+	"exec": {
+	    "git":       "git pull",
+	    "grunt":     "grunt",
+	    "composer":  "composer install",
+	    "prodcache": "php app/console cache:clear --env=prod",
+	    "devcache":  "php app/console cache:clear --env=dev",
+	    "chmod":     "chmod 777 app/cache/* -R"
+	},
+	"glob": {
+		"images": false,
+		"js":     true,
+		"css":    true,
+		"php":    true
+	}
+}
