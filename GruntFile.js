@@ -76,7 +76,7 @@ module.exports = function (grunt) {
             grunt.fail.warn('Could not process composer.json')
         }
 
-        symfonyVersion = composer['require']['symfony/symfony'].slice(0,1)
+        symfonyVersion = composer['require']['symfony/symfony'].slice(0, 1)
         grunt.log.ok('Found symfony version: ' + composer['require']['symfony/symfony'])
     })
 
@@ -257,7 +257,6 @@ module.exports = function (grunt) {
 
     grunt.task.registerTask('finish', 'when done with default tasks', () => {
         grunt.log.ok('Everything went ok :)')
-        console.log(projectBundles[0].files)
     })
 
     grunt.task.registerTask('test', 'The test task', function() {
