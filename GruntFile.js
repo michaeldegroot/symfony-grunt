@@ -15,6 +15,10 @@ module.exports = function (grunt) {
 
     grunt.file.setBase(gruntRoot)
 
+    if (grunt.file.exists(path.join(projectRoot, 'app', 'AppKernel.php')) === false) {
+        grunt.fail.warn('Could not locate a symfony project. Make sure your directory structure from your project root folder is: PROJECTROOTDIR/resources/symfony-grunt/GruntFile.js')
+    }
+
     grunt.task.registerTask('settings', 'Gets the grunt settings file', () => {
         const settingsPath = path.join(gruntRoot, 'settings.json')
         try {
@@ -96,6 +100,7 @@ module.exports = function (grunt) {
                 css:   0,
                 php:   0,
                 image: 0,
+                yaml:  0,
             }
             const jsPatterns = [
                 'Resources/public/js/libs/**/*.js',
@@ -119,6 +124,9 @@ module.exports = function (grunt) {
                 '**/*.bmp',
                 '**/*.webp',
             ]
+            const yamlPatterns = [
+                '**/*.yml',
+            ]
 
             // Find js files
             if (settings.glob.js) {
@@ -138,6 +146,17 @@ module.exports = function (grunt) {
                     found.css++
                 })
                 grunt.log.ok(`${found.css} css files`)
+            }
+
+            // Find yaml files
+            if (settings.glob.yaml) {
+                projectBundles[i].files.yaml = []
+                grunt.file.expand(options, yamlPatterns).forEach(file => {
+                    console.log(file)
+                    projectBundles[i].files.yaml.push(file)
+                    found.yaml++
+                })
+                grunt.log.ok(`${found.yaml} yaml files`)
             }
 
             // Find php files
@@ -163,8 +182,6 @@ module.exports = function (grunt) {
     })
 
     grunt.task.registerTask('createConcat', 'creates the concat object for grunt config', () => {
-        const assetsFolder = path.join('../', '../', 'web', 'assets')
-
         // JS creation
         projectBundles.forEach(bundle => {
             const toConcat = []
@@ -176,7 +193,7 @@ module.exports = function (grunt) {
             gruntConfig.concat[`${bundle.title.toLowerCase()}_js`] = {
                 nonull: true,
                 src:    toConcat,
-                dest:   path.join(assetsFolder, 'js', `${bundle.title.toLowerCase()}.js`)
+                dest:   path.join('generated', 'js', `${bundle.title.toLowerCase()}.js`)
             }
         })
 
@@ -193,7 +210,7 @@ module.exports = function (grunt) {
             gruntConfig.concat[`${bundle.title.toLowerCase()}_css`] = {
                 nonull: true,
                 src:    toConcat,
-                dest:   path.join(assetsFolder, 'css', `${bundle.title.toLowerCase()}.css`)
+                dest:   path.join('generated', 'css', `${bundle.title.toLowerCase()}.css`)
             }
         })
     })
@@ -203,7 +220,7 @@ module.exports = function (grunt) {
             const name = `${bundle.title.toLowerCase()}`
             gruntConfig.cssmin[name] = {
                 src:  `<%=concat.${name}_css.dest%>`,
-                dest: path.join('../', '../','web','assets','css', `${bundle.title.toLowerCase()}.min.css`)
+                dest: path.join('generated','css', `${bundle.title.toLowerCase()}.min.css`)
             }
         })
     })
@@ -211,7 +228,7 @@ module.exports = function (grunt) {
     grunt.task.registerTask('createUglify', 'creates the uglify object for grunt config', () => {
         projectBundles.forEach(bundle => {
             const name       = `${bundle.title.toLowerCase()}`
-            const output     = path.join('../', '../', 'web', 'assets', 'js', `/${name}.min.js`)
+            const output     = path.join('generated', 'js', `/${name}.min.js`)
             gruntConfig.uglify[name] = {
                 files: {},
                 options: settings.uglify
@@ -230,12 +247,27 @@ module.exports = function (grunt) {
 
     grunt.task.registerTask('createCssReplace', 'creates the css replace object for grunt config', () => {
         projectBundles.forEach(bundle => {
-            const name       = `${bundle.title.toLowerCase()}`
-            const output     = path.join('../', '../', 'web', 'assets', 'js', `/${name}.rewrite.min.js`)
+            const name   = `${bundle.title.toLowerCase()}`
+            const output = path.join('generated', 'css', `/${name}.rewrite.min.css`)
             gruntConfig.css_url_replace[name] = {
                 files: {}
             }
             gruntConfig.css_url_replace[name]['files'][output] = [`<%=concat.${name}_js.dest%>`]
+        })
+    })
+
+    grunt.task.registerTask('createImage', 'creates the image object for grunt config', () => {
+        projectBundles.forEach(bundle => {
+            const name       = `${bundle.title.toLowerCase()}`
+            gruntConfig.image[name] = {
+                files: {}
+            }
+            gruntConfig.image[name]['files'] = [{
+                expand: true,
+                cwd: path.join('../', '../', 'src', bundle.path),
+                src: bundle.files.image,
+                dest: path.join('generated', 'images', `/${name}/`)
+            }]
         })
     })
 
@@ -255,6 +287,133 @@ module.exports = function (grunt) {
         })
     })
 
+    grunt.task.registerTask('createBrowserify', 'creates the browserify object for grunt config', () => {
+        projectBundles.forEach(bundle => {
+            const toBrowserify = []
+            const name         = `${bundle.title.toLowerCase()}`
+
+            bundle.files.js.forEach(jsFile => {
+                toBrowserify.push(path.join('../', '../', 'src', bundle.path, jsFile))
+            })
+
+            gruntConfig.browserify.dist.files[path.join('generated', 'js', `/${name}.browserify.js`)] = toBrowserify
+        })
+    })
+
+    grunt.task.registerTask('createEsLint', 'creates the esLint object for grunt config', () => {
+        projectBundles.forEach(bundle => {
+            const toLint = []
+            const name   = `${bundle.title.toLowerCase()}`
+
+            bundle.files.js.forEach(jsFile => {
+                toLint.push(path.join(projectRoot, 'src', bundle.path, jsFile))
+            })
+            gruntConfig.eslint[name] = {
+                files: {}
+            }
+            gruntConfig.eslint[name].files.src = toLint
+        })
+    })
+
+    grunt.task.registerTask('createPhpLint', 'creates the phpLint object for grunt config', () => {
+        projectBundles.forEach(bundle => {
+            const toLint = []
+            const name   = `${bundle.title.toLowerCase()}`
+
+            bundle.files.php.forEach(phpFile => {
+                toLint.push(path.join(projectRoot, 'src', bundle.path, phpFile))
+            })
+
+            gruntConfig.phplint[name] = toLint
+        })
+    })
+
+    grunt.task.registerTask('createYamlLint', 'creates the yamlLint object for grunt config', () => {
+        projectBundles.forEach(bundle => {
+            const toLint = []
+            const name   = `${bundle.title.toLowerCase()}`
+
+            bundle.files.yaml.forEach(yamlFile => {
+                toLint.push(path.join(projectRoot, 'src', bundle.path, yamlFile))
+            })
+            if (toLint.length >= 1) {
+                gruntConfig.yaml_validator[name] = {}
+                gruntConfig.yaml_validator[name].src = toLint
+            }
+        })
+    })
+
+    grunt.task.registerTask('createWatch', 'creates the watch object for grunt config', () => {
+        projectBundles.forEach(bundle => {
+            const toWatchJs  = []
+            const toWatchCss = []
+            const name       = `${bundle.title.toLowerCase()}`
+
+            gruntConfig.watch[name] = {}
+            gruntConfig.watch[name].files = [`<%=concat.${name}_js.src%>`]
+            gruntConfig.watch[name].tasks = ['process']
+            gruntConfig.watch[name].options = {
+                spawn: false,
+            }
+
+            gruntConfig.watch[name] = {}
+            gruntConfig.watch[name].files = [`<%=concat.${name}_css.src%>`]
+            gruntConfig.watch[name].tasks = ['process']
+            gruntConfig.watch[name].options = {
+                spawn: false,
+            }
+        })
+    })
+
+    grunt.task.registerTask('initProcess', 'Starts the init process that is needed for information gathering about the project', () => {
+        grunt.task.run(
+            'settings',
+            'parameters',
+            'projectBundles',
+            'symfonyVersion',
+            'getAssets',
+            'createConcat',
+            'createCssmin',
+            'createUglify',
+            'createCssReplace',
+            'createEntities',
+            'createImage',
+            'createBrowserify',
+            'createEsLint',
+            'createPhpLint',
+            'createYamlLint',
+            'createWatch',
+            'createExec'
+        )
+    })
+
+    grunt.task.registerTask('process', 'Makes sure every process for production was started and finished', () => {
+        if (settings.glob.php) {
+            grunt.task.run('phplint')
+        }
+
+        if (settings.glob.yaml) {
+            grunt.task.run('yamllint')
+        }
+
+        grunt.task.run(
+            'eslint',
+            'concat',
+            'cssmin',
+            'css_url_replace'
+        )
+
+        if (settings.glob.images) {
+            grunt.task.run('image')
+        }
+
+        if (settings.glob.browserify) {
+             grunt.task.run('browserify')
+        } else {
+            grunt.task.run('uglify')
+        }
+    })
+
     grunt.task.registerTask('finish', 'when done with default tasks', () => {
         grunt.log.ok('Everything went ok :)')
     })
@@ -267,13 +426,36 @@ module.exports = function (grunt) {
         grunt.task.run('availabletasks')
     })
 
-    gruntConfig = {}
+    gruntConfig        = {}
+    gruntConfig.exec   = {}
+    gruntConfig.uglify = {}
+    gruntConfig.image  = {}
+    gruntConfig.watch  = {}
 
-    gruntConfig.concat =  {
+    gruntConfig.concat = {
         options: {
             stripBanners: true,
         },
     }
+
+    gruntConfig.yamllint = {
+        options: {
+          schema: 'DEFAULT_SAFE_SCHEMA'
+        },
+        symfony: {
+            src: [path.join(projectRoot, 'app', '**/*.yml')]
+        }
+    },
+    gruntConfig.phplint = {
+        'symfony': [path.join(projectRoot, 'app', '**/*.php')]
+    }
+
+    gruntConfig.eslint = {
+        options:{
+            configFile: 'eslint.json',
+            quiet: true,
+        },
+    },
 
     gruntConfig.cssmin = {
         options: {
@@ -281,9 +463,21 @@ module.exports = function (grunt) {
         },
     }
 
-    gruntConfig.exec = {}
-
-    gruntConfig.uglify = {}
+    gruntConfig.browserify = {
+      dist: {
+        options: {
+           transform: [
+                ['babelify', {
+                    presets: [
+                        path.join(gruntRoot, 'node_modules', 'babel-preset-es2015'),
+                    ]
+                }],
+           ],
+           compact: true,
+        },
+        files: {},
+      }
+    }
 
     gruntConfig.css_url_replace = {
         options: {
@@ -291,23 +485,6 @@ module.exports = function (grunt) {
         },
     }
 
-    // ?
-    gruntConfig.watch = {
-        js: {
-            files: ['<%=concat.js.src%>', 'web/html/**/*.js'],
-            tasks: ['js_frontend'],
-            options: {
-                spawn: false,
-            },
-        },
-        css: {
-            files: ['<%=concat.css.src%>', 'web/html/**/*.css'],
-            tasks: ['css_frontend'],
-            options: {
-                spawn: false,
-            },
-        },
-    }
 
     gruntConfig.availabletasks =  {
         tasks: {
@@ -322,6 +499,8 @@ module.exports = function (grunt) {
                         'concat',
                         'cssmin',
                         'css_url_replace',
+                        'image',
+                        'browserify',
                     ],
                     'For production': [
                         'prod',
@@ -330,6 +509,9 @@ module.exports = function (grunt) {
                         'dev',
                         'watch',
                         'exec',
+                        'phplint',
+                        'yamllint',
+                        'eslint',
                      ],
                     'Internal SYMFONY-GRUNT tasks': [
                         'projectBundles',
@@ -348,7 +530,15 @@ module.exports = function (grunt) {
                         'createCssmin',
                         'createCssReplace',
                         'createEntities',
+                        'createImage',
+                        'createBrowserify',
+                        'createEsLint',
+                        'createPhpLint',
+                        'createYamlLint',
+                        'createExec',
                         'restoreLog',
+                        'createWatch',
+                        'replace',
                      ]
                 }
             }
@@ -356,7 +546,6 @@ module.exports = function (grunt) {
     }
 
     grunt.initConfig(gruntConfig)
-
     grunt.loadNpmTasks('grunt-contrib-concat')
     grunt.loadNpmTasks('grunt-contrib-cssmin')
     grunt.loadNpmTasks('grunt-contrib-uglify')
@@ -365,35 +554,29 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-css-url-replace')
     grunt.loadNpmTasks('grunt-available-tasks')
     grunt.loadNpmTasks('grunt-remove-logging')
+    grunt.loadNpmTasks('grunt-image')
+    grunt.loadNpmTasks('grunt-browserify')
+    grunt.loadNpmTasks('grunt-eslint')
+    grunt.loadNpmTasks("grunt-phplint")
+    grunt.loadNpmTasks('grunt-replace')
+    grunt.loadNpmTasks('grunt-yamllint')
 
-    grunt.registerTask('process', ['concat', 'cssmin', 'uglify', 'css_url_replace'])
     grunt.registerTask('css', ['concat', 'cssmin'])
     grunt.registerTask('js', ['concat', 'uglify'])
     grunt.registerTask('dev', ['process', 'watch'])
     grunt.registerTask('prod', ['process'])
-    grunt.registerTask('initProcess', [
-        'settings',
-        'parameters',
-        'projectBundles',
-        'symfonyVersion',
-        'getAssets',
-        'createConcat',
-        'createCssmin',
-        'createUglify',
-        'createCssReplace',
-        'createEntities',
-        'createExec',
-    ])
 
 
+    grunt.log.ok('Starting initProcess...')
     grunt.log.headerCopy = grunt.log.header
-    grunt.log.okCopy = grunt.log.ok
-    grunt.log.header = function() {}
-    grunt.log.ok = function() {}
+    grunt.log.okCopy     = grunt.log.ok
+    grunt.log.header     = function() {}
+    grunt.log.ok         = function() {}
 
     grunt.task.registerTask('restoreLog', 'Restores the grunt log object that was destroyed on init', () => {
         grunt.log.header = grunt.log.headerCopy
-        grunt.log.ok = grunt.log.okCopy
+        grunt.log.ok     = grunt.log.okCopy
+        grunt.log.ok('initProcess done!')
     })
 
     // initProcess should be always run before anything else.

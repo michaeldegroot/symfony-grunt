@@ -1,0 +1,13 @@
+{
+	"parserOptions": {
+	    "ecmaVersion": 6
+	},
+    "env": {
+        "browser": true,
+        "node": true,
+        "serviceworker": true,
+        "jquery": true,
+        "worker": true,
+        "shared-node-browser": true
+    }
+}
