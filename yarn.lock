@@ -2281,6 +2281,13 @@ grunt-contrib-concat:
     chalk "^1.0.0"
     source-map "^0.5.3"
 
+grunt-contrib-copy:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/grunt-contrib-copy/-/grunt-contrib-copy-1.0.0.tgz#7060c6581e904b8ab0d00f076e0a8f6e3e7c3573"
+  dependencies:
+    chalk "^1.1.1"
+    file-sync-cmp "^0.1.0"
+
 grunt-contrib-cssmin:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/grunt-contrib-cssmin/-/grunt-contrib-cssmin-1.0.2.tgz#1734cbd3d84ca7364758b7e58ff18e52aa60bb76"
@@ -2388,6 +2395,10 @@ grunt-legacy-util@~0.2.0:
     lodash "~0.9.2"
     underscore.string "~2.2.1"
     which "~1.0.5"
+
+grunt-md5:
+  version "0.1.12"
+  resolved "https://registry.yarnpkg.com/grunt-md5/-/grunt-md5-0.1.12.tgz#d51399cca0fa0483bf1035d330221c9aac99ad14"
 
 grunt-phplint:
   version "0.0.8"
@@ -4037,6 +4048,10 @@ rimraf@~2.2.8:
 ripemd160@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/ripemd160/-/ripemd160-1.0.1.tgz#93a4bbd4942bc574b69a8fa57c71de10ecca7d6e"
+
+rmdirp:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/rmdirp/-/rmdirp-0.1.0.tgz#343f502b8678038fe164194792af6171c9c2f96f"
 
 run-async@^0.1.0:
   version "0.1.0"
