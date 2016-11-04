@@ -26,6 +26,35 @@ const initProcesses = [
     'createCopy'            // Should be last!
 ]
 
+const jsPatterns = [
+    'Resources/public/js/libs/**/*.js',
+    'Resources/public/js/custom/**/*.js',
+    'Resources/public/js/**/*.js',
+]
+const cssPatterns = [
+    'Resources/public/css/libs/**/*.css',
+    'Resources/public/css/custom/**/*.css',
+    'Resources/public/css/**/*.css',
+]
+const phpPatterns = [
+    '**/*.php',
+]
+const imagePatterns = [
+    '**/*.png',
+    '**/*.gif',
+    '**/*.jpg',
+    '**/*.jpeg',
+    '**/*.tiff',
+    '**/*.bmp',
+    '**/*.webp',
+]
+const yamlPatterns = [
+    '**/*.yml',
+]
+const twigPatterns = [
+    '**/*.html.twig',
+]
+
 module.exports = function (grunt) {
     grunt.log.ok('SYMFONY-GRUNT executing...')
     const projectRoot  = path.join(__dirname, '../', '../')
@@ -40,6 +69,7 @@ module.exports = function (grunt) {
 
     // Re-generate folder
     rmdirp('generated', () => {})
+    rmdirp(path.join('../', '../', 'web', 'assets'), () => {})
 
     // Generate versioncontrol file if not exists
     if (grunt.file.exists('.versioncontrol') === false) {
@@ -145,34 +175,6 @@ module.exports = function (grunt) {
                 yaml:  0,
                 twig:  0,
             }
-            const jsPatterns = [
-                'Resources/public/js/libs/**/*.js',
-                'Resources/public/js/custom/**/*.js',
-                'Resources/public/js/**/*.js',
-            ]
-            const cssPatterns = [
-                'Resources/public/css/libs/**/*.css',
-                'Resources/public/css/custom/**/*.css',
-                'Resources/public/css/**/*.css',
-            ]
-            const phpPatterns = [
-                '**/*.php',
-            ]
-            const imagePatterns = [
-                '**/*.png',
-                '**/*.gif',
-                '**/*.jpg',
-                '**/*.jpeg',
-                '**/*.tiff',
-                '**/*.bmp',
-                '**/*.webp',
-            ]
-            const yamlPatterns = [
-                '**/*.yml',
-            ]
-            const twigPatterns = [
-                '**/*.html.twig',
-            ]
 
             // Find twig files
             if (settings.glob.twig) {
@@ -285,18 +287,25 @@ module.exports = function (grunt) {
 
     grunt.task.registerTask('createUglify', 'creates the uglify object for grunt config', () => {
         projectBundles.forEach(bundle => {
-            const name       = `${bundle.title.toLowerCase()}`
-            const output     = path.join('generated', 'js', `/${name}.min.js`)
+            const name = `${bundle.title.toLowerCase()}`
+
             gruntConfig.uglify[name] = {
-                files: {},
+                files:   {},
                 options: settings.uglify
             }
+
+            let output
+            let toUglify
+
+            // TODO: not working? Minified file is empty!
             if (settings.glob.browserify) {
-                const output   = path.join('generated', `${name}`, 'js', `/${name}.browserify.min.js`)
-                const toUglify = path.join('generated', `${name}`, 'js', `/${name}.browserify.js`)
+                output   = path.join(gruntRoot, 'generated', `${name}`, 'js', `/${name}.browserify.min.js`)
+                toUglify = path.join(gruntRoot, 'generated', `${name}`, 'js', `/${name}.browserify.js`)
                 gruntConfig.uglify[name]['files'][output] = toUglify
             } else {
-                gruntConfig.uglify[name]['files'][output] = [`<%=concat.${name}_js.dest%>`]
+                output   = path.join(gruntRoot, 'generated', `${name}`, 'js', `/${name}.min.js`)
+                toUglify = path.join(gruntRoot, 'generated', `${name}`, 'js', `/${name}.js`)
+                gruntConfig.uglify[name]['files'][output] = toUglify
             }
         })
     })
@@ -316,7 +325,7 @@ module.exports = function (grunt) {
             gruntConfig.css_url_replace[name] = {
                 files: {}
             }
-            gruntConfig.css_url_replace[name]['files'][output] = [`<%=concat.${name}_js.dest%>`]
+            gruntConfig.css_url_replace[name]['files'][output] = [`<%=concat.${name}_css.dest%>`]
         })
     })
 
@@ -353,7 +362,7 @@ module.exports = function (grunt) {
             } else {
                 cmdPrefix = 'php app/console '
             }
-            const taskName = 'generate_' + bundle.title.toLowerCase()
+            const taskName = 'entities_' + bundle.title.toLowerCase()
             gruntConfig.exec[taskName] = {
                 command: `${cmdPrefix}doctrine:generate:entities ${bundle.namespace}`,
                 cwd:     projectRoot
@@ -411,30 +420,59 @@ module.exports = function (grunt) {
                 toLint.push(path.join(projectRoot, 'src', bundle.path, yamlFile))
             })
             if (toLint.length >= 1) {
-                gruntConfig.yaml_validator[name] = {}
-                gruntConfig.yaml_validator[name].src = toLint
+                gruntConfig.yamllint[name] = {}
+                gruntConfig.yamllint[name].src = toLint
             }
         })
     })
 
     grunt.task.registerTask('createWatch', 'creates the watch object for grunt config', () => {
         projectBundles.forEach(bundle => {
-            const toWatchJs  = []
-            const toWatchCss = []
-            const name       = `${bundle.title.toLowerCase()}`
+            const toWatchJs   = []
+            const toWatchCss  = []
+            const toWatchTwig = []
+            const toWatchPhp  = []
+            const name        = `${bundle.title.toLowerCase()}`
 
             const watchOptions = {
                 livereload: true,
                 spawn:      false,
             }
 
+            bundle.files.js.forEach(jsFile => {
+                toWatchJs.push(path.join(projectRoot, 'src', bundle.path, jsFile))
+            })
+
+            bundle.files.css.forEach(cssFile => {
+                toWatchCss.push(path.join(projectRoot, 'src', bundle.path, cssFile))
+            })
+
+            bundle.files.twig.forEach(twigFile => {
+                toWatchTwig.push(path.join(projectRoot, 'src', bundle.path, twigFile))
+            })
+
+            bundle.files.php.forEach(phpFile => {
+                toWatchTwig.push(path.join(projectRoot, 'src', bundle.path, phpFile))
+            })
+
+            // We watch php files so livereload can trigger!
+            gruntConfig.watch[`${name}_php`]         = {}
+            gruntConfig.watch[`${name}_php`].files   = toWatchPhp
+            gruntConfig.watch[`${name}_php`].options = watchOptions
+
+            // We watch twig files so livereload can trigger!
+            gruntConfig.watch[`${name}_twig`]         = {}
+            gruntConfig.watch[`${name}_twig`].files   = toWatchTwig
+            gruntConfig.watch[`${name}_twig`].options = watchOptions
+
+            // TODO: optimise the watch task, performing the process task is OVERKILL!
             gruntConfig.watch[`${name}_js`]         = {}
-            gruntConfig.watch[`${name}_js`].files   = [`< %= concat.${name}_js.src%>`]
+            gruntConfig.watch[`${name}_js`].files   = toWatchJs
             gruntConfig.watch[`${name}_js`].tasks   = ['process']
             gruntConfig.watch[`${name}_js`].options = watchOptions
 
             gruntConfig.watch[`${name}_css`]         = {}
-            gruntConfig.watch[`${name}_css`].files   = [`< %= concat.${name}_css.src%>`]
+            gruntConfig.watch[`${name}_css`].files   = toWatchCss
             gruntConfig.watch[`${name}_css`].tasks   = ['process']
             gruntConfig.watch[`${name}_css`].options = watchOptions
         })
@@ -449,10 +487,16 @@ module.exports = function (grunt) {
                 toReplace.push(path.join(projectRoot, 'src', bundle.path, twigFile))
             })
 
-            const buildCss   = `<link rel="stylesheet" type="text/css" href="/assets/css/${name}.css?version=${versionControl}">`
 
-            const jsFile     = `<script src="/assets/js/${name}.js?version=${versionControl}"></script>`
-            const liveReload = '<script src="//localhost:35729/livereload.js"></script>'
+            let extra = '.rewrite.min'
+            const buildCss   = `<link rel="stylesheet" type="text/css" href="/bundles/${name}/css/${name}${extra}.css?version=${versionControl}">`
+
+            extra = '.min'
+            if (settings.glob.browserify) {
+                extra = '.browserify.min'
+            }
+            const jsFile     = `<script src="/bundles/${name}/js/${name}${extra}.js?version=${versionControl}"></script>`
+            const liveReload = `<script src="${settings.website.root}:35729/livereload.js"></script>`
             const buildJs    = `${jsFile}${liveReload}`
 
             gruntConfig.replace[name] = {}
@@ -480,19 +524,57 @@ module.exports = function (grunt) {
             const toWatchJs  = []
             const toWatchCss = []
             const name       = `${bundle.title.toLowerCase()}`
-            gruntConfig.copy[name] = {
+
+            if (settings.glob.browserify) {
+                srcFiles = `js/${name}.browserify.min.js`
+            } else {
+                srcFiles = `js/${name}.min.js`
+            }
+
+            gruntConfig.copy[`${name}_js`] = {
                 files: [
                     {
                         expand: true,
-                        cwd: path.join(gruntRoot, 'generated'),
-                        src: `${name}/**/*`,
-                        dest: path.join(projectRoot, 'web', 'assets', `${name}`),
+                        cwd: path.join(gruntRoot, 'generated', `${name}`),
+                        src: srcFiles,
+                        dest: path.join(projectRoot, 'web', 'bundles', `${name}`),
                         filter: 'isFile'
                     },
                 ]
             }
+
+            gruntConfig.copy[`${name}_css`] = {
+                files: [
+                    {
+                        expand: true,
+                        cwd: path.join(gruntRoot, 'generated', `${name}`),
+                        src: `css/${name}.rewrite.min.css`,
+                        dest: path.join(projectRoot, 'web', 'bundles', `${name}`),
+                        filter: 'isFile'
+                    },
+                ]
+            }
+
+            if (settings.glob.images) {
+                const toFind = []
+
+                imagePatterns.forEach(pattern => {
+                    toFind.push(`images/${pattern}`)
+                })
+
+                gruntConfig.copy[`${name}_images`] = {
+                    files: [
+                        {
+                            expand: true,
+                            cwd:    path.join(gruntRoot, 'generated', `${name}`),
+                            src:    toFind,
+                            dest:   path.join(projectRoot, 'web', 'bundles', `${name}`),
+                            filter: 'isFile'
+                        },
+                    ]
+                }
+            }
         })
-        console.log(gruntConfig.copy.app.files)
     })
 
     grunt.task.registerTask('initProcess', 'Starts the init process that is needed for information gathering about the project', () => {
@@ -529,7 +611,7 @@ module.exports = function (grunt) {
         }
 
         // Seems to be a little buggy still
-        // grunt.task.run('copy')
+        grunt.task.run('copy')
     })
 
     grunt.task.registerTask('finish', 'when done with default tasks', () => {

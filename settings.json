@@ -1,4 +1,7 @@
 {
+	"website": {
+		"root": "http://symfony-grunt.dev"
+	},
 	"uglify": {
         "compress": {
             "drop_console": true,
