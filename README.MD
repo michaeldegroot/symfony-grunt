@@ -51,8 +51,13 @@ __AND/OR__
 ##### 3. Clone the fun!
 `git clone git@github.com:michaeldegroot/symfony-grunt.git`
 
-##### 4. Check out the sweet commands
-`cd symfony-grunt && grunt`
+##### 4. [Yarn](https://yarnpkg.com/) around
+`cd symfony-grunt`
+
+`yarn`
+
+##### 6. Check out the sweet commands
+`grunt`
 
 _The grunt command will launch the GruntFile.js and show you all the available commands_
 
