@@ -26,7 +26,7 @@ Every time you want to execute a task with symfony-grunt all of your project fil
  - Concat's JS and CSS
  - Rewrites in CSS files the paths to absolute path
  - Copies all generated files to the web/bundles/ folder
- - Replace all <symfony-grunt-css> and <symfony-grunt-js> tags with the JS and CSS file respectively
+ - Replace all `<symfony-grunt-css>` and `<symfony-grunt-js>` tags with the JS and CSS file respectively
  - Use the generated version control number in the query of the filename (cache buster)
  - Watches for changes and if a change is detected repeat the process
 
