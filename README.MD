@@ -60,7 +60,7 @@ _The grunt command will launch the GruntFile.js and show you all the available c
 # Configuration
 __Configuration is not needed, but can be specified if need be__
 
-A settings.json is location in this projects root. You can edit is as you wish
+A settings.json is location in this projects root. You can edit it as you wish
 
 ```js
 {
