@@ -56,7 +56,7 @@ __AND/OR__
 
 `yarn`
 
-##### 6. Check out the sweet commands
+##### 5. Check out the sweet commands
 `grunt`
 
 _The grunt command will launch the GruntFile.js and show you all the available commands_
