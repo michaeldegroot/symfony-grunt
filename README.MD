@@ -104,3 +104,5 @@ A settings.json is location in this projects root. You can edit it as you wish
  - Unit Tests
  - Heavy performance updates (just want a working concept right now!)
  - More Symfony commands seamlessly integerated
+ - Stability
+ - Production ready!
