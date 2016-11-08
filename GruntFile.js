@@ -2,6 +2,7 @@ const path   = require('path')
 const _      = require('lodash')
 const fs     = require('fs')
 const rmdirp = require('rmdirp')
+const async  = require('async')
 
 // The tasks that need to be run before the start of any other task.
 const initProcesses = [
@@ -90,7 +91,8 @@ module.exports = function (grunt) {
     }
 
     // Get the settings.json file for configuration of the module
-    grunt.task.registerTask('settings', 'Gets the grunt settings file', () => {
+    grunt.task.registerTask('settings', 'Gets the grunt settings file', function() {
+        const done = this.async()
         const settingsPath = path.join(gruntRoot, 'settings.json')
         try {
             settings = grunt.file.readJSON(settingsPath)
@@ -100,10 +102,12 @@ module.exports = function (grunt) {
         }
 
         grunt.log.ok('Found and processed settings.json file')
+        done()
     })
 
     // Gets all symfony bundles from current project
-    grunt.task.registerTask('projectBundles', 'Gets the project bundles path along with namespace', () => {
+    grunt.task.registerTask('projectBundles', 'Gets the project bundles path along with namespace', function() {
+        const done = this.async()
         grunt.file.recurse(path.join(projectRoot, 'src'), (abspath, rootdir, subdir, filename) => {
             if (subdir) {
                 subdir.split(path.sep).forEach(dirpath => {
@@ -124,10 +128,12 @@ module.exports = function (grunt) {
             }
             grunt.log.ok('Bundle found: ' + bundle)
         })
+        done()
     })
 
     // Gets the parameters.yml file from the current project and determines if the ENV is dev
-    grunt.task.registerTask('parameters', 'Gets the parameters.yml file from project root', () => {
+    grunt.task.registerTask('parameters', 'Gets the parameters.yml file from project root', function() {
+        const done = this.async()
         const parametersPath = path.join(projectRoot, 'app', 'config' , 'parameters.yml')
         try {
             parameters = grunt.file.readYAML(parametersPath)
@@ -142,10 +148,12 @@ module.exports = function (grunt) {
         }
 
         grunt.log.ok('Developer mode: ' + isDev)
+        done()
     })
 
     // Check the symfony version
-    grunt.task.registerTask('symfonyVersion', 'Gets the current symfony version', () => {
+    grunt.task.registerTask('symfonyVersion', 'Gets the current symfony version', function() {
+        const done = this.async()
         const composerPath = path.join(projectRoot, 'composer.json')
         try {
             composer = grunt.file.readJSON(composerPath)
@@ -156,11 +164,13 @@ module.exports = function (grunt) {
 
         symfonyVersion = composer['require']['symfony/symfony'].slice(0, 1)
         grunt.log.ok('Found symfony version: ' + composer['require']['symfony/symfony'])
+        done()
     })
 
     // Get all the assets from the found bundles
-    grunt.task.registerTask('getAssets', 'get all assets from current bundles', () => {
-        projectBundles.forEach((bundle, i) => {
+    grunt.task.registerTask('getAssets', 'get all assets from current bundles', function() {
+        const done = this.async()
+        async.each(projectBundles, function(bundle, callback) {
             grunt.log.ok(bundle.path)
 
             const options = {
@@ -178,9 +188,9 @@ module.exports = function (grunt) {
 
             // Find twig files
             if (settings.glob.twig) {
-                projectBundles[i].files.twig = []
+                bundle.files.twig = []
                 grunt.file.expand(options, twigPatterns).forEach(file => {
-                    projectBundles[i].files.twig.push(file)
+                    bundle.files.twig.push(file)
                     found.twig++
                 })
                 grunt.log.ok(`${found.twig} twig files`)
@@ -189,9 +199,9 @@ module.exports = function (grunt) {
 
             // Find js files
             if (settings.glob.js) {
-                projectBundles[i].files.js = []
+                bundle.files.js = []
                 grunt.file.expand(options, jsPatterns).forEach(file => {
-                    projectBundles[i].files.js.push(file)
+                    bundle.files.js.push(file)
                     found.js++
                 })
                 grunt.log.ok(`${found.js} js files`)
@@ -199,9 +209,9 @@ module.exports = function (grunt) {
 
             // Find css files
             if (settings.glob.css) {
-                projectBundles[i].files.css = []
+                bundle.files.css = []
                 grunt.file.expand(options, cssPatterns).forEach(file => {
-                    projectBundles[i].files.css.push(file)
+                    bundle.files.css.push(file)
                     found.css++
                 })
                 grunt.log.ok(`${found.css} css files`)
@@ -209,9 +219,9 @@ module.exports = function (grunt) {
 
             // Find yaml files
             if (settings.glob.yaml) {
-                projectBundles[i].files.yaml = []
+                bundle.files.yaml = []
                 grunt.file.expand(options, yamlPatterns).forEach(file => {
-                    projectBundles[i].files.yaml.push(file)
+                    bundle.files.yaml.push(file)
                     found.yaml++
                 })
                 grunt.log.ok(`${found.yaml} yaml files`)
@@ -219,9 +229,9 @@ module.exports = function (grunt) {
 
             // Find php files
             if (settings.glob.php) {
-                projectBundles[i].files.php = []
+                bundle.files.php = []
                 grunt.file.expand(options, phpPatterns).forEach(file => {
-                    projectBundles[i].files.php.push(file)
+                    bundle.files.php.push(file)
                     found.php++
                 })
                 grunt.log.ok(`${found.php} php files`)
@@ -229,19 +239,22 @@ module.exports = function (grunt) {
 
             // Find image files
             if (settings.glob.images) {
-                projectBundles[i].files.image = []
+                bundle.files.image = []
                 grunt.file.expand(options, imagePatterns).forEach(file => {
-                    projectBundles[i].files.image.push(file)
+                    bundle.files.image.push(file)
                     found.image++
                 })
                 grunt.log.ok(`${found.image} image files`)
             }
+            callback()
         })
+        done()
     })
 
-    grunt.task.registerTask('createConcat', 'creates the concat object for grunt config', () => {
+    grunt.task.registerTask('createConcat', 'creates the concat object for grunt config', function() {
+        const done = this.async()
         // JS creation
-        projectBundles.forEach(bundle => {
+        async.each(projectBundles, (bundle, callback) => {
             const name = `${bundle.title.toLowerCase()}`
             const toConcat = []
 
@@ -254,10 +267,11 @@ module.exports = function (grunt) {
                 src:    toConcat,
                 dest:   path.join('generated', `${name}`, 'js', `${name}.js`)
             }
+            callback()
         })
 
         // CSS creation
-        projectBundles.forEach(bundle => {
+        async.each(projectBundles, (bundle, callback) => {
             const name = `${bundle.title.toLowerCase()}`
             const toConcat = []
 
@@ -272,21 +286,27 @@ module.exports = function (grunt) {
                 src:    toConcat,
                 dest:   path.join('generated', `${name}`, 'css', `${name}.css`)
             }
+            callback()
         })
+        done()
     })
 
-    grunt.task.registerTask('createCssmin', 'creates the cssmin object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createCssmin', 'creates the cssmin object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const name = `${bundle.title.toLowerCase()}`
             gruntConfig.cssmin[name] = {
                 src:  `<%=concat.${name}_css.dest%>`,
                 dest: path.join('generated', `${name}`, 'css', `${bundle.title.toLowerCase()}.min.css`)
             }
+            callback()
         })
+        done()
     })
 
-    grunt.task.registerTask('createUglify', 'creates the uglify object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createUglify', 'creates the uglify object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const name = `${bundle.title.toLowerCase()}`
 
             gruntConfig.uglify[name] = {
@@ -307,30 +327,43 @@ module.exports = function (grunt) {
                 toUglify = path.join(gruntRoot, 'generated', `${name}`, 'js', `/${name}.js`)
                 gruntConfig.uglify[name]['files'][output] = toUglify
             }
+
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('createExec', 'creates the exec object for grunt config from the settings.json file', () => {
+    grunt.task.registerTask('createExec', 'creates the exec object for grunt config from the settings.json file', function() {
+        const done = this.async()
         for (let exec in settings.exec) {
             gruntConfig.exec[exec]            = {}
             gruntConfig.exec[exec]['command'] = settings.exec[exec]
             gruntConfig.exec[exec]['cwd']     = projectRoot
         }
+
+        done()
     })
 
-    grunt.task.registerTask('createCssReplace', 'creates the css replace object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createCssReplace', 'creates the css replace object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const name   = `${bundle.title.toLowerCase()}`
             const output = path.join('generated', `${name}`, 'css', `/${name}.rewrite.min.css`)
             gruntConfig.css_url_replace[name] = {
                 files: {}
             }
             gruntConfig.css_url_replace[name]['files'][output] = [`<%=concat.${name}_css.dest%>`]
+
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('createImage', 'creates the image object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createImage', 'creates the image object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const name       = `${bundle.title.toLowerCase()}`
             gruntConfig.image[name] = {
                 files: {}
@@ -351,11 +384,16 @@ module.exports = function (grunt) {
                 src: bundle.files.image,
                 dest: path.join('generated', `${name}`, 'images', `/${name}/`)
             }]
+
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('createEntities', 'creates the exec entities command for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createEntities', 'creates the exec entities command for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             let cmdPrefix
             if(symfonyVersion >= 3) {
                 cmdPrefix = 'php bin/console '
@@ -367,11 +405,16 @@ module.exports = function (grunt) {
                 command: `${cmdPrefix}doctrine:generate:entities ${bundle.namespace}`,
                 cwd:     projectRoot
             }
+
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('createBrowserify', 'creates the browserify object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createBrowserify', 'creates the browserify object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const toBrowserify = []
             const name         = `${bundle.title.toLowerCase()}`
 
@@ -380,11 +423,15 @@ module.exports = function (grunt) {
             })
 
             gruntConfig.browserify.dist.files[path.join('generated', `${name}`, 'js', `/${name}.browserify.js`)] = toBrowserify
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('createEsLint', 'creates the esLint object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createEsLint', 'creates the esLint object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const toLint = []
             const name   = `${bundle.title.toLowerCase()}`
 
@@ -395,11 +442,16 @@ module.exports = function (grunt) {
                 files: {}
             }
             gruntConfig.eslint[name].files.src = toLint
+
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('createPhpLint', 'creates the phpLint object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createPhpLint', 'creates the phpLint object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const toLint = []
             const name   = `${bundle.title.toLowerCase()}`
 
@@ -408,11 +460,16 @@ module.exports = function (grunt) {
             })
 
             gruntConfig.phplint[name] = toLint
+
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('createYamlLint', 'creates the yamlLint object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createYamlLint', 'creates the yamlLint object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const toLint = []
             const name   = `${bundle.title.toLowerCase()}`
 
@@ -423,11 +480,16 @@ module.exports = function (grunt) {
                 gruntConfig.yamllint[name] = {}
                 gruntConfig.yamllint[name].src = toLint
             }
+
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('createWatch', 'creates the watch object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createWatch', 'creates the watch object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const toWatchJs   = []
             const toWatchCss  = []
             const toWatchTwig = []
@@ -475,11 +537,16 @@ module.exports = function (grunt) {
             gruntConfig.watch[`${name}_css`].files   = toWatchCss
             gruntConfig.watch[`${name}_css`].tasks   = ['process']
             gruntConfig.watch[`${name}_css`].options = watchOptions
+
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('createReplace', 'creates the replace object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createReplace', 'creates the replace object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const name = `${bundle.title.toLowerCase()}`
             const toReplace = []
 
@@ -516,11 +583,16 @@ module.exports = function (grunt) {
                     dest: path.join(gruntRoot, 'generated', `${name}`, 'twig')
                 }
             ]
+
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('createCopy', 'creates the copy object for grunt config', () => {
-        projectBundles.forEach(bundle => {
+    grunt.task.registerTask('createCopy', 'creates the copy object for grunt config', function() {
+        const done = this.async()
+        async.each(projectBundles, (bundle, callback) => {
             const toWatchJs  = []
             const toWatchCss = []
             const name       = `${bundle.title.toLowerCase()}`
@@ -574,14 +646,20 @@ module.exports = function (grunt) {
                     ]
                 }
             }
+
+            callback()
         })
+
+        done()
     })
 
-    grunt.task.registerTask('initProcess', 'Starts the init process that is needed for information gathering about the project', () => {
+    grunt.task.registerTask('initProcess', 'Starts the init process that is needed for information gathering about the project', function() {
         grunt.task.run(initProcesses)
     })
 
-    grunt.task.registerTask('process', 'Makes sure every process was started and finished', () => {
+    grunt.task.registerTask('process', 'Makes sure every process was started and finished', function() {
+        const done = this.async()
+
         if (settings.glob.php) {
             grunt.task.run('phplint')
         }
@@ -605,13 +683,14 @@ module.exports = function (grunt) {
 
         if (settings.glob.browserify) {
             grunt.task.run('browserify')
-            grunt.task.run('uglify')
         } else {
             grunt.task.run('uglify')
         }
 
         // Seems to be a little buggy still
         grunt.task.run('copy')
+
+        done()
     })
 
     grunt.task.registerTask('finish', 'when done with default tasks', () => {
@@ -646,7 +725,8 @@ module.exports = function (grunt) {
 
     gruntConfig.yamllint = {
         options: {
-            schema: 'DEFAULT_SAFE_SCHEMA'
+            force: true,
+            schema: 'DEFAULT_FULL_SCHEMA'
         },
         symfony: {
             src: [path.join(projectRoot, 'app', '**/*.yml')]

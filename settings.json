@@ -19,7 +19,7 @@
 	    "chmod":     "chmod 777 app/cache/* -R"
 	},
 	"glob": {
-		"images":     true,
+		"images":     false,
 		"js":         true,
 		"css":        true,
 		"php":        true,
